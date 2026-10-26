@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://daydrift.example/schemas/manifest.schema.json",
+  "$id": "https://daydrift-docs.blym.top/schemas/manifest.schema.json",
   "title": "DaydriftModManifest",
   "description": "《度日：Daydrift》模组元数据清单规范",
   "type": "object",
