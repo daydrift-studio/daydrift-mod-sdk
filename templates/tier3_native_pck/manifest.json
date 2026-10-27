@@ -1,0 +1,16 @@
+{
+  "$schema": "https://daydrift-docs.blym.top/schemas/manifest.schema.json",
+  "id": "tier3_expansion_realm",
+  "name": "原生扩展领域",
+  "version": "1.0.0",
+  "author": "Daydrift Studio",
+  "description": "Tier 3 原生 PCK 模组示例，继承 DaydriftNativeMod 实现全能原生控制、文本篡改、UI 注入与新房间门。",
+  "type": "native",
+  "entry": "entry.gd",
+  "priority": 50,
+  "permissions": [
+    "scene_tampering",
+    "ui_mounting",
+    "network_packet"
+  ]
+}

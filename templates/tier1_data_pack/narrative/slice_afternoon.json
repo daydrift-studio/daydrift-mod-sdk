@@ -1,0 +1,35 @@
+{
+  "$schema": "https://daydrift-docs.blym.top/schemas/slice.schema.json",
+  "id": "afternoon_tea_break",
+  "title": "午后暖茶时光",
+  "trigger": {
+    "period": [1],
+    "min_day": 1,
+    "chance": 1.0,
+    "conditions": {}
+  },
+  "dialogues": [
+    {
+      "speaker": "独白",
+      "text": "阳光透过窗帘的缝隙洒在地板上，桌上的水壶正冒着温和的热气。",
+      "choices": [
+        {
+          "id": "pour_tea",
+          "text": "倒一杯热茶静静品尝",
+          "set_flag": "had_afternoon_tea"
+        },
+        {
+          "id": "look_outside",
+          "text": "走到窗边眺望空旷街道",
+          "set_flag": "looked_outside"
+        }
+      ]
+    }
+  ],
+  "effects": {
+    "set_flags": {
+      "cozy_slice_experienced": true
+    },
+    "advance_period": false
+  }
+}

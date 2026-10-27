@@ -1,0 +1,12 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["/manifest.json"],
+      "url": "https://daydrift-docs.blym.top/schemas/manifest.schema.json"
+    },
+    {
+      "fileMatch": ["/narrative/*.json"],
+      "url": "https://daydrift-docs.blym.top/schemas/slice.schema.json"
+    }
+  ]
+}

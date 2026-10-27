@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://daydrift-docs.blym.top/schemas/slice.schema.json",
+  "title": "DaydriftNarrativeSlice",
+  "description": "《度日：Daydrift》Tier 1 纯数据叙事事件切片规范",
+  "type": "object",
+  "required": ["id", "title", "trigger", "dialogues"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$",
+      "description": "切片唯一标识符"
+    },
+    "title": {
+      "type": "string",
+      "description": "切片事件标题"
+    },
+    "trigger": {
+      "type": "object",
+      "required": ["period"],
+      "properties": {
+        "period": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0, "maximum": 3 },
+          "description": "允许触发的时段列表 (0: 清晨, 1: 正午, 2: 傍晚, 3: 深夜)"
+        },
+        "min_day": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "最早触发的天数"
+        },
+        "chance": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 1.0,
+          "description": "随机触发概率 (0.0 - 1.0)"
+        },
+        "conditions": {
+          "type": "object",
+          "description": "前置黑板状态条件键值对"
+        }
+      }
+    },
+    "dialogues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["speaker", "text"],
+        "properties": {
+          "speaker": {
+            "type": "string",
+            "description": "说话人角色名称或本地化键名"
+          },
+          "text": {
+            "type": "string",
+            "description": "对白正文或本地化键名"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "text"],
+              "properties": {
+                "id": { "type": "string" },
+                "text": { "type": "string" },
+                "set_flag": { "type": "string" },
+                "next_slice": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "effects": {
+      "type": "object",
+      "properties": {
+        "set_flags": {
+          "type": "object",
+          "description": "事件完成后写入黑板的键值对"
+        },
+        "advance_period": {
+          "type": "boolean",
+          "default": false,
+          "description": "事件完成后是否推进至下一个时段"
+        },
+        "sfx": {
+          "type": "string",
+          "description": "触发时播放的音效路径"
+        }
+      }
+    }
+  }
+}

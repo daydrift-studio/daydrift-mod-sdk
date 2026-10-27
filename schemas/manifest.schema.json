@@ -19,95 +19,68 @@
     },
     "version": {
       "type": "string",
-      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
-      "description": "语义化版本号 (SemVer 2.0.0)"
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "description": "语义化版本号 (SemVer, 如 1.0.0)"
     },
     "author": {
       "type": "string",
       "minLength": 1,
       "maxLength": 64,
-      "description": "模组创作者/团队名称"
+      "description": "作者署名"
     },
     "description": {
       "type": "string",
-      "maxLength": 512,
-      "description": "模组简要介绍与玩法说明"
+      "maxLength": 500,
+      "description": "模组简介与功能描述"
     },
     "type": {
       "type": "string",
-      "enum": ["data", "script", "hybrid"],
-      "description": "模组类型：纯数据配置(data)、纯Lua脚本(script)或混合模组(hybrid)"
+      "enum": ["data", "lua", "native"],
+      "description": "模组架构分流体系：'data' (纯数据), 'lua' (脚本沙盒), 'native' (原生PCK)"
+    },
+    "entry": {
+      "type": "string",
+      "description": "模组主入口文件相对路径（例如 narrative/slice.json, scripts/main.lua 或 entry.gd）"
     },
     "priority": {
       "type": "integer",
-      "default": 10,
-      "description": "加载优先级，数值越大越先加载"
+      "default": 0,
+      "description": "加载权重，数值越大越先加载"
     },
     "net_sync_mode": {
       "type": "string",
-      "enum": ["client_only", "server_only", "full_sync"],
+      "enum": ["client_only", "server_only", "two_way", "optional"],
       "default": "client_only",
-      "description": "联机网络同步模式"
+      "description": "多端联机同步模式"
     },
     "preview": {
       "type": "string",
-      "pattern": "^[^/\\\\].*\\.(png|jpg|jpeg|webp)$",
-      "description": "模组目录内封面预览图路径，推荐 1280x720 (16:9)"
+      "description": "模组预览图相对路径 (如 preview.webp, preview.png)"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "模组主页或源码仓库网址"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "前置依赖的模组 ID 列表"
     },
     "permissions": {
       "type": "array",
       "items": {
         "type": "string",
         "enum": [
-          "narrative.say",
-          "narrative.choice",
-          "interaction.inject",
-          "ui.toast",
-          "world.time",
-          "world.flag",
-          "storage.mod",
-          "asset.texture",
-          "asset.audio"
+          "scene_tampering",
+          "ui_mounting",
+          "network_packet",
+          "save_tampering",
+          "file_access",
+          "audio_playback"
         ]
       },
-      "uniqueItems": true,
-      "description": "模组请求声明的沙箱能力权限词表"
-    },
-    "compatibility": {
-      "type": "object",
-      "properties": {
-        "minVersionCode": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "最低支持的游戏内部版本代码 versionCode"
-        },
-        "maxVersionCode": {
-          "type": ["integer", "null"],
-          "description": "最高支持的游戏版本代码 versionCode，null 表示不设上限"
-        }
-      },
-      "required": ["minVersionCode"],
-      "additionalProperties": false
-    },
-    "license": {
-      "type": "string",
-      "description": "开源许可证标识符，如 MIT, Apache-2.0, CC-BY-4.0 等"
-    },
-    "source": {
-      "type": "string",
-      "format": "uri",
-      "description": "模组公开源码仓库链接 (https://...)"
-    },
-    "homepage": {
-      "type": "string",
-      "format": "uri",
-      "description": "模组官方主页或文档页面链接"
-    },
-    "tags": {
-      "type": "array",
-      "items": { "type": "string", "maxLength": 20 },
-      "maxItems": 10,
-      "description": "分类标签列表"
+      "description": "模组申请的高级权限声明"
     }
   },
   "additionalProperties": true

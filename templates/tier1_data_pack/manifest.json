@@ -1,0 +1,11 @@
+{
+  "$schema": "https://daydrift-docs.blym.top/schemas/manifest.schema.json",
+  "id": "tier1_cozy_slice",
+  "name": "温暖午后切片",
+  "version": "1.0.0",
+  "author": "Daydrift Studio",
+  "description": "Tier 1 纯数据模组示例，展示纯 JSON 叙事扩展、多语言 CSV 与外部像素素材挂载。",
+  "type": "data",
+  "entry": "narrative/slice_afternoon.json",
+  "priority": 10
+}

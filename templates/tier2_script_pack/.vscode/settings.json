@@ -1,0 +1,20 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["/manifest.json"],
+      "url": "https://daydrift-docs.blym.top/schemas/manifest.schema.json"
+    }
+  ],
+  "Lua.workspace.library": [
+    "${workspaceFolder}/../../definitions"
+  ],
+  "Lua.diagnostics.globals": [
+    "ModAPI",
+    "ServerAPI",
+    "on_player_join",
+    "on_player_leave",
+    "on_time_advanced",
+    "on_chat",
+    "on_net_packet"
+  ]
+}

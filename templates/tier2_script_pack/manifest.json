@@ -1,0 +1,12 @@
+{
+  "$schema": "https://daydrift-docs.blym.top/schemas/manifest.schema.json",
+  "id": "tier2_weather_station",
+  "name": "双端气象站",
+  "version": "1.0.0",
+  "author": "Daydrift Studio",
+  "description": "Tier 2 双端脚本模组示例，展示客户端与服务端的逻辑沙盒扩展与跨端联机报文。",
+  "type": "lua",
+  "entry": "scripts/main.lua",
+  "priority": 20,
+  "net_sync_mode": "two_way"
+}

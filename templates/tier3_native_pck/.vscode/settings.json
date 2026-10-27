@@ -1,0 +1,8 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["/manifest.json"],
+      "url": "https://daydrift-docs.blym.top/schemas/manifest.schema.json"
+    }
+  ]
+}
