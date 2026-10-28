@@ -1,46 +1,52 @@
 -- ==============================================================================
--- 《度日：Daydrift》Tier 2 Go 服务端扩展入口 (server/main.lua)
+-- 《度日：Daydrift》Tier 2 服务端脚本入口 (server/main.lua)
+-- 运行于 Go 独立服务端内部的受控 Lua 沙盒，负责联机状态同步与公共黑板管理
 -- ==============================================================================
 
-local weather_states = {"晴朗", "微雨", "薄雾", "宁静阴天"}
-local current_index = 1
+ServerAPI.log("微风气象站服务端模组已启动。")
 
-ServerAPI.log("气象站服务端模组已就绪")
+-- 初始化公共黑板天气状态
+ServerAPI.Blackboard.set("weather", "晴朗", true)
 
--- 注册服务端管理指令 /weather [name]
-ServerAPI.Commands.register("weather", "查看或切换全服天气状态", function(args)
-    if #args > 0 then
-        local new_w = args[1]
-        ServerAPI.Blackboard.set("server_weather", new_w, true)
-        ServerAPI.Net.broadcast("weather_update", { weather = new_w })
-        return string.format("已将全服天气切换为：%s 并广播", new_w)
-    else
-        local curr = ServerAPI.Blackboard.get("server_weather")
-        if curr == "" then curr = weather_states[current_index] end
-        return string.format("当前全服天气为：%s", curr)
+-- 注册管理员与玩家聊天指令 (输入 /weather <name>)
+ServerAPI.Commands.register("weather", "查看或更改全镇天气状态", function(peer_id, args)
+    if #args == 0 then
+        local w = ServerAPI.Blackboard.get("weather") or "晴朗"
+        return "当前全镇天气为：" .. w
     end
+    
+    local new_weather = args[1]
+    ServerAPI.Blackboard.set("weather", new_weather, true)
+    
+    -- 广播网络信道更新报文给全体在线旅人
+    ServerAPI.Net.broadcast("weather_update", {
+        weather = new_weather,
+        changed_by = peer_id
+    })
+    
+    ServerAPI.broadcast("小镇上空的天气已变更为：" .. new_weather)
+    return "已成功将全镇天气更新为：" .. new_weather
 end)
 
--- 时段推进钩子
-function on_time_advanced(period, day)
-    current_index = (current_index % #weather_states) + 1
-    local next_weather = weather_states[current_index]
-    ServerAPI.Blackboard.set("server_weather", next_weather, true)
-    ServerAPI.Net.broadcast("weather_update", { weather = next_weather })
-    ServerAPI.broadcast(string.format("【全服气象】进入第 %d 天 %s，天气变幻为：%s", day, period, next_weather))
-end
-
--- 玩家加入钩子
+-- 全局回调：新旅人加入房间
 function on_player_join(peer_id, nickname)
-    local curr = ServerAPI.Blackboard.get("server_weather")
-    if curr == "" then curr = weather_states[current_index] end
-    ServerAPI.Net.send(peer_id, "weather_update", { weather = curr })
+    ServerAPI.log(string.format("旅人 %s (%s) 踏入了小镇。", nickname, peer_id))
+    local w = ServerAPI.Blackboard.get("weather") or "晴朗"
+    -- 单播发送当前天气给新入房玩家
+    ServerAPI.Net.send(peer_id, "weather_update", {
+        weather = w,
+        changed_by = "server"
+    })
 end
 
--- 接收客户端自定义网络报文
+-- 全局回调：收到来自客户端的模组网络报文
 function on_net_packet(peer_id, channel, payload)
-    if channel == "query_weather" then
-        local curr = ServerAPI.Blackboard.get("server_weather")
-        ServerAPI.Net.send(peer_id, "weather_update", { weather = curr })
+    if channel == "request_weather" and payload.weather then
+        ServerAPI.log(string.format("旅人 %s 申请变更天气为: %s", peer_id, payload.weather))
+        ServerAPI.Blackboard.set("weather", payload.weather, true)
+        ServerAPI.Net.broadcast("weather_update", {
+            weather = payload.weather,
+            changed_by = peer_id
+        })
     end
 end

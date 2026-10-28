@@ -8,19 +8,52 @@
     "chance": 1.0,
     "conditions": {}
   },
+  "interactions": {
+    "kettle": [
+      {
+        "id": "brew_afternoon_tea",
+        "text": "MOD_TEA_BREW_PROMPT",
+        "dialogue": {
+          "speaker": "MOD_SPEAKER_ME",
+          "lines": [
+            "MOD_TEA_LINE_1",
+            "MOD_TEA_LINE_2"
+          ],
+          "set_flag": {
+            "had_afternoon_tea": true
+          }
+        }
+      }
+    ],
+    "bedroom_window": [
+      {
+        "id": "look_outside_afternoon",
+        "text": "MOD_TEA_WINDOW_PROMPT",
+        "dialogue": {
+          "speaker": "MOD_SPEAKER_ME",
+          "lines": [
+            "MOD_TEA_WINDOW_LINE_1"
+          ],
+          "set_flag": {
+            "looked_outside": true
+          }
+        }
+      }
+    ]
+  },
   "dialogues": [
     {
-      "speaker": "独白",
-      "text": "阳光透过窗帘的缝隙洒在地板上，桌上的水壶正冒着温和的热气。",
+      "speaker": "MOD_SPEAKER_ME",
+      "text": "MOD_TEA_INTRO_LINE",
       "choices": [
         {
           "id": "pour_tea",
-          "text": "倒一杯热茶静静品尝",
+          "text": "MOD_TEA_CHOICE_POUR",
           "set_flag": "had_afternoon_tea"
         },
         {
           "id": "look_outside",
-          "text": "走到窗边眺望空旷街道",
+          "text": "MOD_TEA_CHOICE_WINDOW",
           "set_flag": "looked_outside"
         }
       ]
