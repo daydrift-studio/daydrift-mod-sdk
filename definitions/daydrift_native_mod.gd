@@ -442,6 +442,46 @@ func send_net_packet(channel: String, payload: Dictionary, target_peer: int = 0)
 		lan_host_manager.call("send_mod_packet", mod_id, channel, payload, target_peer)
 
 
+## 快捷触发全域像素通知（Toast 浮层）
+func toast(message: String) -> void:
+	if is_instance_valid(event_bus) and event_bus.has_signal("dd_notification_shown"):
+		event_bus.dd_notification_shown.emit(message)
+	print("[%s] Toast: %s" % [mod_id, message])
+
+
+## 快捷调出对白框或发送通知（自适应单参数文本或 speaker, text 双参数）
+func say(arg1: String, arg2: String = "") -> void:
+	var speaker: String = ""
+	var text: String = ""
+	if arg2.is_empty():
+		text = arg1
+	else:
+		speaker = arg1
+		text = arg2
+
+	var diag: Node = null
+	if is_instance_valid(tree) and is_instance_valid(tree.root):
+		diag = tree.root.find_child("DialogueBox", true, false)
+
+	if is_instance_valid(diag) and diag.has_method("start_dialogue"):
+		diag.start_dialogue(text, speaker, "mod_dialogue")
+	else:
+		var display_msg: String = "%s: %s" % [speaker, text] if not speaker.is_empty() else text
+		toast(display_msg)
+
+
+## 快捷调起多分支交互选项对白
+func choice(speaker: String, text: String, choices: Array, callback: Callable = Callable()) -> void:
+	var diag: Node = null
+	if is_instance_valid(tree) and is_instance_valid(tree.root):
+		diag = tree.root.find_child("DialogueBox", true, false)
+
+	if is_instance_valid(diag) and diag.has_method("start_choice"):
+		diag.start_choice(speaker, text, choices, callback)
+	else:
+		say(speaker, text)
+
+
 # ==============================================================================
 # 7. 全自动化回滚执行器（Zero-Residue Managed Rollback）
 # ==============================================================================
