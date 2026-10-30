@@ -30,18 +30,18 @@ var lan_host_manager: Node = null
 # ==============================================================================
 
 var _hijacked_resources: Dictionary = {} # target_path: String -> original_resource: Resource
-var _patched_scripts: Array[Dictionary] = [] # Array of {"node": Node, "original_script": Script, "saved_state": Dictionary}
+var _patched_scripts: Array = [] # Array of {"node": Node, "original_script": Script, "saved_state": Dictionary}
 var _custom_autoloads: Dictionary = {} # singleton_name: String -> instance: Node
 var _mod_translations: Dictionary = {} # locale: String -> Translation
-var _managed_csv_translations: Array[Translation] = []
-var _dialogue_interceptors: Array[Callable] = []
-var _managed_connections: Array[Dictionary] = [] # Array of {"signal": Signal, "callable": Callable}
-var _managed_children: Array[Node] = []
-var _managed_mounted_ui: Array[Dictionary] = [] # Array of {"parent": Node, "control": Control}
+var _managed_csv_translations: Array = []
+var _dialogue_interceptors: Array = []
+var _managed_connections: Array = [] # Array of {"signal": Signal, "callable": Callable}
+var _managed_children: Array = []
+var _managed_mounted_ui: Array = [] # Array of {"parent": Node, "control": Control}
 var _managed_added_actions: Array[String] = [] # Array of action_name: String
-var _managed_screen_shaders: Array[CanvasLayer] = []
-var _managed_injected_choices: Array[Dictionary] = [] # Array of {"anchor_id": String, "choice_text": String}
-var _pending_ui_mounts: Array[Dictionary] = [] # Array of {"target_alias": String, "control": Control}
+var _managed_screen_shaders: Array = []
+var _managed_injected_choices: Array = [] # Array of {"anchor_id": String, "choice_text": String}
+var _pending_ui_mounts: Array = [] # Array of {"target_alias": String, "control": Control}
 var _registered_locations: Dictionary = {} # loc_id: String -> PackedScene
 var _managed_npc_overrides: Dictionary = {} # npc_id: String -> Dictionary
 
@@ -265,6 +265,13 @@ func register_location(loc_id: String, scene_res: PackedScene) -> void:
 
 ## 在原版场景中动态生成一扇物理实体木门（RoomDoor），通往模组新场景或原版场景
 func spawn_physical_door(target_scene_id: String, pos: Vector2, dest_loc_id: String, spawn_pos: Vector2, label_tr: String) -> Node:
+	var door_name: String = "ModDoor_%s_to_%s" % [target_scene_id, dest_loc_id]
+	var current_scene: Node = tree.current_scene if is_instance_valid(tree) else null
+	if is_instance_valid(current_scene):
+		var existing = current_scene.find_child(door_name, true, false)
+		if is_instance_valid(existing):
+			return existing
+
 	var door_scene: PackedScene = load("res://src/common/door/room_door.tscn") as PackedScene
 	var door_node: Node = null
 	if is_instance_valid(door_scene):
@@ -275,14 +282,13 @@ func spawn_physical_door(target_scene_id: String, pos: Vector2, dest_loc_id: Str
 	if not is_instance_valid(door_node):
 		return null
 
-	door_node.name = "ModDoor_%s_to_%s" % [target_scene_id, dest_loc_id]
+	door_node.name = door_name
 	door_node.position = pos
 	if "target_scene_path" in door_node:
 		door_node.set("target_scene_path", dest_loc_id)
 	if "door_id" in door_node:
 		door_node.set("door_id", StringName("door_%s" % dest_loc_id))
 
-	var current_scene: Node = tree.current_scene if is_instance_valid(tree) else null
 	if is_instance_valid(current_scene):
 		add_child_managed(current_scene, door_node)
 	else:
@@ -490,69 +496,82 @@ func choice(speaker: String, text: String, choices: Array, callback: Callable = 
 func _rollback_all_managed_changes() -> void:
 	print("[DaydriftNativeMod:%s] Executing zero-residue rollback..." % mod_id)
 
+	# 0. 先断开全局 node_added 监听，防止回滚期间或退出期间收到节点销毁事件引发异常
+	if is_instance_valid(tree) and tree.node_added.is_connected(_internal_on_node_added):
+		tree.node_added.disconnect(_internal_on_node_added)
+
 	# 1. 断开所有托管信号连接
 	for conn in _managed_connections:
-		var s: Signal = conn.get("signal")
-		var c: Callable = conn.get("callable")
-		if is_instance_valid(s.get_object()) and s.is_connected(c):
-			s.disconnect(c)
+		var s = conn.get("signal")
+		var c = conn.get("callable")
+		if s != null and typeof(s) == TYPE_SIGNAL and c != null and typeof(c) == TYPE_CALLABLE:
+			var sig_obj = s.get_object()
+			if is_instance_valid(sig_obj) and s.is_connected(c):
+				s.disconnect(c)
 	_managed_connections.clear()
 
-	# 2. 释放所有挂载的 UI 与子节点
+	# 2. 释放所有挂载的 UI 与子节点（使用 Variant 弱类型遍历，防止 Godot 4 对已释放实例强转崩溃）
 	for ui_entry in _managed_mounted_ui:
-		var ctrl: Control = ui_entry.get("control")
+		var ctrl = ui_entry.get("control")
 		if is_instance_valid(ctrl):
 			ctrl.queue_free()
 	_managed_mounted_ui.clear()
 	_pending_ui_mounts.clear()
 
 	for ch in _managed_children:
-		if is_instance_valid(ch):
-			ch.queue_free()
+		var child_node = ch
+		if is_instance_valid(child_node):
+			child_node.queue_free()
 	_managed_children.clear()
 
 	# 3. 释放全屏 Shader 滤镜
 	for cl in _managed_screen_shaders:
-		if is_instance_valid(cl):
-			cl.queue_free()
+		var layer_node = cl
+		if is_instance_valid(layer_node):
+			layer_node.queue_free()
 	_managed_screen_shaders.clear()
 
 	# 4. 释放动态注册的 Autoload 单例
 	for name_str in _custom_autoloads.keys():
-		var inst: Node = _custom_autoloads[name_str]
+		var inst = _custom_autoloads[name_str]
 		if is_instance_valid(inst):
 			inst.queue_free()
 	_custom_autoloads.clear()
 
 	# 5. 还原 Monkey Patch 的节点脚本与属性
 	for patch_info in _patched_scripts:
-		var n: Node = patch_info.get("node")
-		var orig_s: Script = patch_info.get("original_script")
-		var saved_st: Dictionary = patch_info.get("saved_state", {})
+		var n = patch_info.get("node")
+		var orig_s = patch_info.get("original_script")
+		var saved_st = patch_info.get("saved_state", {})
 		if is_instance_valid(n):
-			n.set_script(orig_s)
-			for k in saved_st:
-				if k in n:
-					n.set(k, saved_st[k])
+			if is_instance_valid(orig_s):
+				n.set_script(orig_s)
+			else:
+				n.set_script(null)
+			if saved_st is Dictionary:
+				for k in saved_st:
+					if k in n:
+						n.set(k, saved_st[k])
 	_patched_scripts.clear()
 
 	# 6. 还原被 hijack 劫持接管的原生资源路径
 	for target_path in _hijacked_resources.keys():
-		var orig_res: Resource = _hijacked_resources[target_path]
+		var orig_res = _hijacked_resources[target_path]
 		if is_instance_valid(orig_res):
 			orig_res.take_over_path(target_path)
 	_hijacked_resources.clear()
 
 	# 7. 从 TranslationServer 注销模组注入的翻译
 	for loc in _mod_translations.keys():
-		var tr_obj: Translation = _mod_translations[loc]
+		var tr_obj = _mod_translations[loc]
 		if is_instance_valid(tr_obj):
 			TranslationServer.remove_translation(tr_obj)
 	_mod_translations.clear()
 
 	for tr_csv in _managed_csv_translations:
-		if is_instance_valid(tr_csv):
-			TranslationServer.remove_translation(tr_csv)
+		var csv_obj = tr_csv
+		if is_instance_valid(csv_obj):
+			TranslationServer.remove_translation(csv_obj)
 	_managed_csv_translations.clear()
 
 	# 8. 移除 InputMap 中新增的按键动作
@@ -568,7 +587,9 @@ func _rollback_all_managed_changes() -> void:
 
 	# 10. 清理 ModAPI 注入的交互选项
 	for choice in _managed_injected_choices:
-		ModAPI.remove_interaction_choice(choice.get("anchor_id", ""), choice.get("choice_text", ""))
+		var anchor = choice.get("anchor_id", "")
+		var choice_txt = choice.get("choice_text", "")
+		ModAPI.remove_interaction_choice(anchor, choice_txt)
 	_managed_injected_choices.clear()
 
 	print("[DaydriftNativeMod:%s] Zero-residue rollback completed cleanly." % mod_id)
@@ -631,21 +652,22 @@ func _internal_on_node_added(node: Node) -> void:
 		var still_pending: Array[Dictionary] = []
 		for item in _pending_ui_mounts:
 			var alias: String = item.get("target_alias", "")
-			var ctrl: Control = item.get("control")
+			var ctrl = item.get("control")
 			var matched: bool = false
-			if node.name == alias or node.is_in_group(alias):
+			if is_instance_valid(ctrl) and (node.name == alias or node.is_in_group(alias)):
 				node.add_child(ctrl)
 				_managed_mounted_ui.append({"parent": node, "control": ctrl})
 				matched = true
-			if not matched:
+			if not matched and is_instance_valid(ctrl):
 				still_pending.append(item)
 		_pending_ui_mounts = still_pending
 
 	# 检查主场景变更
 	if is_instance_valid(tree) and node == tree.current_scene:
 		var scene_id: String = node.name
-		_last_scene_id = scene_id
-		_on_scene_ready(scene_id, node)
+		if scene_id != _last_scene_id:
+			_last_scene_id = scene_id
+			_on_scene_ready(scene_id, node)
 
 
 func _internal_on_transition_finished() -> void:
